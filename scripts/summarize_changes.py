@@ -1,63 +1,34 @@
-#!/usr/bin/env python3
-import subprocess, os, re, datetime
+import subprocess
+import os
+from pathlib import Path
 
-BASE = os.environ.get("BASE_BRANCH", "origin/main")
+# Get branch & commit sha
+branch = os.environ.get("GITHUB_REF", "").replace("refs/heads/", "")
+sha = (os.environ.get("GITHUB_SHA") or "")[:7]
+
+# Prepare output folder
+output_dir = Path("outputs")
+output_dir.mkdir(exist_ok=True)
+out_path = output_dir / f"summary_{branch}_{sha}.md"
 
 def run(cmd):
-    return subprocess.check_output(cmd, text=True).strip()
+    return subprocess.check_output(cmd, shell=True, text=True).strip()
 
-def safe_run(cmd):
-    try:
-        return run(cmd)
-    except subprocess.CalledProcessError:
-        return ""
+# Show what changed in the last commit
+diff_stat = run("git diff --stat HEAD~1 HEAD || true")
+diff_patch = run("git diff --unified=3 HEAD~1 HEAD || true")
 
-def get_branch_and_sha():
-    branch = safe_run(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-    sha = safe_run(["git", "rev-parse", "--short", "HEAD"])
-    return branch, sha
+summary = f"# Code summary — {branch} @ {sha}\n\n"
+if diff_stat:
+    summary += f"## Changed files\n```\n{diff_stat}\n```\n\n"
+else:
+    summary += "_No file changes detected._\n\n"
 
-def analyze_diff(diff_text):
-    added, removed = 0, 0
-    todos, funcs_added = [], []
-    for line in diff_text.splitlines():
-        if line.startswith("+") and not line.startswith("+++"):
-            added += 1
-            if "TODO" in line or "FIXME" in line:
-                todos.append(line.strip()[1:])
-            m = re.match(r"^\+\s*def\s+(\w+)\(", line)
-            if m:
-                funcs_added.append(m.group(1))
-        elif line.startswith("-") and not line.startswith("---"):
-            removed += 1
-    return added, removed, funcs_added, todos
+if diff_patch:
+    summary += f"## Diff details\n```diff\n{diff_patch}\n```\n"
+else:
+    summary += "_No diff details available._\n"
 
-def main():
-    branch, sha = get_branch_and_sha()
-    subprocess.run(["git", "fetch", "origin", "main"], check=False)
-    diff_files = safe_run(["git", "diff", "--name-only", f"{BASE}..HEAD"]).splitlines()
-
-    if not diff_files:
-        print("No changes detected.")
-        return
-
-    summary = [f"# Code summary — {branch} @ {sha}", ""]
-    for f in diff_files:
-        diff_text = safe_run(["git", "diff", "--unified=0", f"{BASE}..HEAD", "--", f])
-        added, removed, funcs, todos = analyze_diff(diff_text)
-        line = f"- `{f}`: +{added}/-{removed}"
-        if funcs:
-            line += f"; functions added: {', '.join(funcs)}"
-        if todos:
-            line += f"; TODOs: {len(todos)}"
-        summary.append(line)
-
-    os.makedirs("outputs", exist_ok=True)
-    out_file = f"outputs/summary_{branch}_{sha}.md"
-    with open(out_file, "w") as f:
-        f.write("\n".join(summary))
-
-    print("\n".join(summary))
-
-if __name__ == "__main__":
-    main()
+# Save to file
+out_path.write_text(summary)
+print(f"Summary written to {out_path}")
