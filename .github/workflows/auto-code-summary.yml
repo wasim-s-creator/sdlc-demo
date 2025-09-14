@@ -1,0 +1,41 @@
+name: Auto Code Summary
+
+on:
+  push:
+    branches:
+      - "wasim"
+      - "unioun"
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Run summarizer
+        run: |
+          python3 scripts/summarize_changes.py
+
+      - name: Create issue with summary
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const branch = process.env.GITHUB_REF.replace('refs/heads/','');
+            const sha = (process.env.GITHUB_SHA || '').slice(0,7);
+            const outPath = `outputs/summary_${branch}_${sha}.md`;
+            const body = fs.existsSync(outPath) ? fs.readFileSync(outPath, 'utf8') : "No summary generated.";
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Auto summary — ${branch} @ ${sha}`,
+              body
+            });
