@@ -6,6 +6,10 @@ on:
       - "wasim"
       - "unioun"
 
+permissions:
+  contents: read
+  issues: write # 👈 allow workflow to create issues
+
 jobs:
   summarize:
     runs-on: ubuntu-latest
@@ -27,6 +31,7 @@ jobs:
       - name: Create issue with summary
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }} # 👈 Add this line
           script: |
             const fs = require('fs');
             const branch = process.env.GITHUB_REF.replace('refs/heads/','');
