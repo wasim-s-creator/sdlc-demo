@@ -24,6 +24,10 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Install analysis tools
+        run: |
+          pip install flake8 pylint mypy black isort
+
       - name: Run summarizer
         run: |
           python3 scripts/summarize_changes.py
