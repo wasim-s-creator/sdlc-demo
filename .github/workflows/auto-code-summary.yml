@@ -1,4 +1,4 @@
-name: Auto Code Summary
+\name: Auto Code Summary
 
 on:
   push:
@@ -46,8 +46,21 @@ jobs:
           merged_file="outputs/final_${branch}_${sha}.md"
 
           echo "# Auto Summary + Code Analysis" > $merged_file
-          [ -f "$summary_file" ] && cat "$summary_file" >> $merged_file
-          [ -f "$analysis_file" ] && cat "$analysis_file" >> $merged_file
+
+          if [ -f "$summary_file" ]; then
+            cat "$summary_file" >> $merged_file
+          else
+            echo "⚠️ No summary file found" >> $merged_file
+          fi
+
+          if [ -f "$analysis_file" ]; then
+            cat "$analysis_file" >> $merged_file
+          else
+            echo "⚠️ No analysis file found" >> $merged_file
+          fi
+
+          # Always append Suggested Fixes section
+          echo -e "\n## ✅ Suggested Fixes\n<font color='green'>No fixes provided yet</font>" >> $merged_file
 
       - name: Create issue with results
         uses: actions/github-script@v6
