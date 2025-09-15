@@ -1,31 +1,42 @@
-﻿
-
-# --- Class addition ---
-class Calculator:
+﻿class Calculator:
     def __init__(self):
         self.value = 0
 
     def add(self, x, y):
-        print("Adding numbers") 
+        print("Adding numbers")
         return x + y
 
-    def subtract(self, x, y):
+    def subtract(self, x, y)
         return x - y
 
-# --- Function addition ---
-def multiply(a, b):
-    return a * b  # Simple function
-
-# --- Function with TODO ---
-def divide(a, b):
-   
-    return a / b
+    def divide(self, x, y):
+        return x / y
 
 
-def syntax_error_example()
-    print("This will fail")  
+def multiply(a, b, c):
+    return a * b  
 
 
-x = 10
+def concat_strings(a, b):
+    result = a + " " + b
+    print("Result is: " + result)  
+    return  
+
+
+unused_var = 12345  
+
+
+def bad_indent():
+print("This line is not indented")  
+
+
+def cause_runtime():
+    numbers = [1, 2, 3]
+    return numbers[5]  
+
+
+X = 10
 y = 20
-z = x + y
+Sum = X + y  
+
+print("Sum is", Sum)
