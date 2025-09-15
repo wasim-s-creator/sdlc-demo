@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  issues: write # 👈 allow workflow to create issues
+  issues: write
 
 jobs:
   summarize:
@@ -28,19 +28,36 @@ jobs:
         run: |
           python3 scripts/summarize_changes.py
 
-      - name: Create issue with summary
+      - name: Run analyzer (syntax + lint + runtime check)
+        run: |
+          python3 scripts/analyze_code.py || true   # prevent pipeline from failing
+
+      - name: Merge outputs
+        run: |
+          mkdir -p outputs
+          branch=$(echo "${GITHUB_REF#refs/heads/}")
+          sha=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          summary_file="outputs/summary_${branch}_${sha}.md"
+          analysis_file="outputs/analysis_${branch}_${sha}.md"
+          merged_file="outputs/final_${branch}_${sha}.md"
+
+          echo "# Auto Summary + Code Analysis" > $merged_file
+          [ -f "$summary_file" ] && cat "$summary_file" >> $merged_file
+          [ -f "$analysis_file" ] && cat "$analysis_file" >> $merged_file
+
+      - name: Create issue with results
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }} # 👈 Add this line
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
             const branch = process.env.GITHUB_REF.replace('refs/heads/','');
             const sha = (process.env.GITHUB_SHA || '').slice(0,7);
-            const outPath = `outputs/summary_${branch}_${sha}.md`;
+            const outPath = `outputs/final_${branch}_${sha}.md`;
             const body = fs.existsSync(outPath) ? fs.readFileSync(outPath, 'utf8') : "No summary generated.";
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `Auto summary — ${branch} @ ${sha}`,
+              title: `Auto summary + analysis — ${branch} @ ${sha}`,
               body
             });

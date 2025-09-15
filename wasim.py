@@ -1,4 +1,6 @@
 ﻿class Calculator:
+
+    
     def __init__(self):
         self.value = 0
 
@@ -24,12 +26,6 @@ def concat_strings(a, b):
 
 
 unused_var = 12345  
-
-
-def bad_indent():
-print("This line is not indented")  
-
-
 def cause_runtime():
     numbers = [1, 2, 3]
     return numbers[5]  
@@ -40,3 +36,9 @@ y = 20
 Sum = X + y  
 
 print("Sum is", Sum)
+
+def bad_indent():
+print("This line is not indented")  
+
+
+
