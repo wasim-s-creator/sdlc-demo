@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  issues: write # 👈 allow workflow to create issues
+  issues: write
 
 jobs:
   summarize:
@@ -24,23 +24,47 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Install dependencies
+        run: |
+          pip install flake8 pylint mypy black isort
+
+      - name: Run code analysis
+        run: |
+          python3 scripts/analyze_code.py
+
       - name: Run summarizer
         run: |
           python3 scripts/summarize_changes.py
 
-      - name: Create issue with summary
+      - name: Create issue with summary + analysis
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }} # 👈 Add this line
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
             const branch = process.env.GITHUB_REF.replace('refs/heads/','');
             const sha = (process.env.GITHUB_SHA || '').slice(0,7);
-            const outPath = `outputs/summary_${branch}_${sha}.md`;
-            const body = fs.existsSync(outPath) ? fs.readFileSync(outPath, 'utf8') : "No summary generated.";
+
+            const summaryPath = `outputs/summary_${branch}_${sha}.md`;
+            const analysisPath = `outputs/analysis_${branch}_${sha}.md`;
+
+            let body = '';
+
+            if (fs.existsSync(summaryPath)) {
+              body += fs.readFileSync(summaryPath, 'utf8') + "\n\n";
+            } else {
+              body += "_No summary generated._\n\n";
+            }
+
+            if (fs.existsSync(analysisPath)) {
+              body += fs.readFileSync(analysisPath, 'utf8');
+            } else {
+              body += "_No code analysis available._";
+            }
+
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `Auto summary — ${branch} @ ${sha}`,
+              title: `Auto summary & analysis — ${branch} @ ${sha}`,
               body
             });
